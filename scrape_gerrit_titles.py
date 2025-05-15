@@ -172,6 +172,12 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
+        'QTBUG',
+        help='The QTBUG ticket number you want to scrape.',
+        type=str
+    )
+
+    parser.add_argument(
         'jsessionid',
         help='The JSESSIONID cookie value required for Qt bug report authentication.',
         type=str
@@ -196,7 +202,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # --- Scrape titles from the webpage ---
-    SCRAPE_URL = "https://bugreports.qt.io/browse/QTBUG-115777"
+    qtbug=f"QTBUG-{args.QTBUG.upper().removeprefix('QTBUG-').removeprefix('QTBUG')}"
+    SCRAPE_URL = f"https://bugreports.qt.io/browse/{qtbug}"
     YOUR_COOKIES = {
         'JSESSIONID': args.jsessionid,
         'atlassian.xsrf.token': args.atlassian_token,
