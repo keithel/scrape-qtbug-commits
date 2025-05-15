@@ -162,7 +162,15 @@ def filter_titles_by_commits(scraped_titles_set, commits):
 
 if __name__ == "__main__":
     # --- Set up argument parsing ---
-    parser = argparse.ArgumentParser(description=f"Scrape Gerrit subject titles (truncated to {MAX_SUMMARY_LENGTH} chars) and match them against Git commits (truncated to {MAX_SUMMARY_LENGTH} chars) on a specific branch.")
+    parser = argparse.ArgumentParser(
+        description=f"Scrape Gerrit subject titles (truncated to {MAX_SUMMARY_LENGTH} chars) and match them against Git commits (truncated to {MAX_SUMMARY_LENGTH} chars) on a specific branch.",
+        epilog="To get the JSESSIONID and atlassian.xsrf.token cookies from a"
+        "chrome browser, open `Developer Tools` (<F12>), go to the "
+        "`Application` tab, and open `Cookies` in the treeview on the left. "
+        "`JSESSIONID` and `atlassian.xsrf.token` cookies should be shown on "
+        "the right. Copy the values and provide them to this script.",
+    )
+
     parser.add_argument(
         'jsessionid',
         help='The JSESSIONID cookie value required for Qt bug report authentication.',
