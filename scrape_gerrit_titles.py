@@ -1,8 +1,9 @@
 import requests
 from bs4 import BeautifulSoup
 import sys
+import argparse # Import the argparse module
 
-# (Keep the scrape_with_cookies and save_titles_to_file functions as they were in Method 2)
+# (Keep the scrape_with_cookies and save_titles_to_file functions as they were)
 # ... copy the functions from the previous response ...
 
 def scrape_with_cookies(url, cookies):
@@ -25,7 +26,16 @@ def scrape_with_cookies(url, cookies):
             print(f"Attempting to scrape {url} with provided cookies...")
             response = session.get(url)
             response.raise_for_status() # Raise an HTTPError for bad responses (4xx or 5xx)
-            print("Request successful. Parsing content.")
+
+            # Optional: Check if the response content indicates a successful login
+            # This is site-specific, but you could look for a known element
+            # that only appears when logged in. For now, we rely on status_code.
+            if response.status_code == 200:
+                 print("Request successful. Parsing content.")
+            else:
+                 print(f"Request returned status code {response.status_code}. Cookies might be invalid or insufficient.", file=sys.stderr)
+                 return None
+
 
             # Parse the HTML content
             soup = BeautifulSoup(response.content, 'html.parser')
@@ -65,21 +75,42 @@ def save_titles_to_file(titles, filename="titles.txt"):
 
 
 if __name__ == "__main__":
+    # --- Set up argument parsing ---
+    parser = argparse.ArgumentParser(
+        description="Scrape Gerrit subject titles from a Qt bug report page "
+        "using JSESSIONID and atlassian.xsrf.token cookies.",
+        epilog="To get the JSESSIONID and atlassian.xsrf.token cookies from a"
+        "chrome browser, open `Developer Tools` (<F12>), go to the "
+        "`Application` tab, and open `Cookies` in the treeview on the left. "
+        "`JSESSIONID` and `atlassian.xsrf.token` cookies should be shown on "
+        "the right. Copy the values and provide them to this script.",
+    )
+    parser.add_argument(
+        'jsessionid',
+        help='The JSESSIONID cookie value required for authentication.',
+        type=str
+    )
+    parser.add_argument(
+        'atlassian_token',
+        help='The atlassian.xsrf.token cookie value required for authentication.',
+        type=str
+    )
+
+    # Parse the command-line arguments
+    args = parser.parse_args()
+
+    # --- Use the provided cookies ---
     SCRAPE_URL = "https://bugreports.qt.io/browse/QTBUG-115777"
 
-    # >>> YOUR OBTAINED COOKIES HERE <<<
-    # Replace with your actual cookie names and values
+    # Construct the cookies dictionary using the provided arguments
     YOUR_COOKIES = {
-        'JSESSIONID': 'YOUR_JSESSIONID_VALUE', # Replace with your actual JSESSIONID
-        'atlassian.token': 'YOUR_ATLASSIAN_TOKEN_VALUE', # Replace with your actual atlassian.token
-        # Add other relevant cookies found in your browser
+        'JSESSIONID': args.jsessionid,
+        'atlassian.xsrf.token': args.atlassian_token, # Include the atlassian token
     }
 
-    # Check if default cookie values are still present
-    if 'JSESSIONID' not in YOUR_COOKIES or YOUR_COOKIES['JSESSIONID'] == 'YOUR_JSESSIONID_VALUE':
-         print("ERROR: Please replace cookie values in YOUR_COOKIES with your actual cookies.", file=sys.stderr)
-         print("You will need to manually log in and inspect your browser's cookies.", file=sys.stderr)
-         sys.exit(1)
+    print(f"Using JSESSIONID: {args.jsessionid[:5]}... (showing first 5 chars)")
+    print(f"Using atlassian.xsrf.token: {args.atlassian_token[:5]}... (showing first 5 chars)")
+
 
     gerrit_titles = scrape_with_cookies(SCRAPE_URL, YOUR_COOKIES)
 
@@ -89,17 +120,14 @@ if __name__ == "__main__":
         # --- Process the titles: Sort and Make Unique ---
 
         # 1. Sort the list alphabetically
-        # sorted() returns a new sorted list
         sorted_titles = sorted(gerrit_titles)
         print(f"Titles sorted.")
 
         # 2. Make the list unique while maintaining sorted order
-        # An elegant way in modern Python (3.7+) is using dict.fromkeys
-        # which preserves insertion order. Converting to a list gets the unique items.
         unique_sorted_titles = list(dict.fromkeys(sorted_titles))
         print(f"Reduced to {len(unique_sorted_titles)} unique titles.")
 
         # --- Save the processed titles ---
         save_titles_to_file(unique_sorted_titles)
     else:
-        print("No titles were scraped or an error occurred.")
+        print("No titles were scraped or an error occurred. Please check your cookies.")
